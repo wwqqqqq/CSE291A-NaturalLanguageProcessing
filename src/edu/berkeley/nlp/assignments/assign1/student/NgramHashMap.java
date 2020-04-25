@@ -1,56 +1,143 @@
 package edu.berkeley.nlp.assignments.assign1.student;
 
-import java.util.*;
-
 public class NgramHashMap {
-	HashMap<Long, HashMap<Integer, Integer>> map = new HashMap<Long, HashMap<Integer, Integer>>();
-	public NgramHashMap(int n) {}
-	
-	public long getConcatenateIndex(long ind1, int ind2) {
-		return ind1<<20 + ind2;
-	}
-	
-	public long getConcatenateIndex(int ind1, int ind2) {
-		long ind = ind1;
-		ind = ind << 20 + ind2;
-		return ind;
-	}
-	
-	
-	public int addPrefixWord(long prefix, int wordIndex) {
-		int val = 1;
-		if(map.containsKey(prefix)) {
-			HashMap<Integer, Integer> innerMap = map.get(prefix);
-			if(innerMap.containsKey(wordIndex)) {
-				val = innerMap.get(wordIndex) + 1;
-			}
-			innerMap.put(wordIndex, val);
-			map.put(prefix, innerMap);
+	// HashMap<Long, HashMap<Integer, Integer>> map = new HashMap<Long, HashMap<Integer, Integer>>();
+	private HashMapEntry[] map;
+	private int estimate_max_size;
+	private int count;
+
+	public NgramHashMap(int n) {
+		if(n == 1) {
+			estimate_max_size = 1000000; // 495172
+		}
+		else if(n == 2) {
+			estimate_max_size = 10000000; // 8374230
+		}
+		else if(n == 3) {
+			estimate_max_size = 50000000; // 25760367
 		}
 		else {
-			HashMap<Integer, Integer> innerMap = new HashMap<Integer, Integer>();
-			innerMap.put(wordIndex, 1);
-			map.put(prefix, innerMap);
+			System.out.println("WARNING: Order > 3 in NgramHashMap.");
 		}
-		return val;
+		map = new HashMapEntry[estimate_max_size];
+		count = 0;
 	}
-	
-	public int getPrefixWordCount(long prefix, int wordIndex) {
-		if(map.containsKey(prefix)) {
-			HashMap<Integer, Integer> innerMap = map.get(prefix);
-			if(innerMap.containsKey(wordIndex)) {
-				return (innerMap.get(wordIndex));
+
+	private int hash(long key) {
+		// TODO: design a hash function
+		int h = (int)((key ^ (key >>> 32)) * 3875239);
+		if (h < 0) {
+			h = - (h + 1);
+		}
+		return (h % estimate_max_size);
+	}
+
+	private int addIndex(long key) {
+		int h = hash(key);
+		int index = h;
+		if(index >= map.length || count >= map.length) {
+			System.out.println("WARNING: INDEX > ESTIMATE_SIZE");
+			return 0;
+		}
+		for(; index < map.length; index++) {
+			if(map[index] == null) {
+				map[index] = new HashMapEntry(key);
+				count++;
+				return index;
+			}
+			if(map[index].word == key) {
+				return index;
 			}
 		}
-		return 0;
-    }
-    
-    public int getWordNumber(long prefix) {
-        if(map.containsKey(prefix)) {
-			HashMap<Integer, Integer> innerMap = map.get(prefix);
-			return innerMap.size();
+		for(index = 0; index < h && index < map.length; index++) {
+			if(map[index] == null) {
+				map[index] = new HashMapEntry(key);
+				count++;
+				return index;
+			}
+			if(map[index].word == key) {
+				return index;
+			}
 		}
+
+		System.out.println("WARNING: NgramHashMap: nowhere to add index.");
 		return 0;
-    }
+	}
+
+	private int findIndex(long key) {
+		int h = hash(key);
+		int index = h;
+		for(; index < map.length; index++) {
+			if(map[index] == null || map[index].value == 0) {
+				return -1;
+			}
+			if(map[index].word == key) {
+				return index;
+			}
+		}
+		for(index = 0; index < h && index < map.length; index++) {
+			if(map[index] == null || map[index].value == 0) {
+				return -1;
+			}
+			if(map[index].word == key) {
+				return index;
+			}
+		}
+		return -1;
+	}
+
+	private HashMapEntry accessMapIndex(int index) {
+		if(index >= map.length || index < 0) {
+			System.out.println("WARNING: NgramHashMap: Index out of Boundary!");
+			return null;
+		}
+		if(map[index] == null) {
+			System.out.println("WARNING: NgramHashMap: access null entry!");
+			return null;
+		}
+		return map[index];
+	}
 	
+	public boolean containsKey(long key) {
+		int index = findIndex(key);
+		if(index < 0) {
+			return false;
+		}
+		return true;
+	}
+
+	public int addOne(long key) {
+		int index = addIndex(key);
+		map[index].value++;
+		return index;
+	}
+
+	public int put(long key, int value) {
+		int index = addIndex(key);
+		map[index].value = value;
+		return index;
+	}
+
+	public int indexOf(long key) {
+		return findIndex(key);
+	}
+
+	public int get(long key) {
+		return getKeyValue(key);
+	}
+
+	public int getKeyValue(long key) {
+		int index = findIndex(key);
+		if(index < 0) {
+			return 0;
+		}
+		return accessMapIndex(index).value;
+	}
+
+	public int getIndexValue(int index) {
+		if(index < 0) {
+			return 0;
+		}
+		return accessMapIndex(index).value;
+	}
 }
