@@ -98,73 +98,95 @@ public class LmFactory implements LanguageModelFactory
 	System.out.println("Done building Trigram Model.");
 	
     return new NgramLanguageModel(){
-      // Kneser-Ney Trigram Language Model
-      @Override
-      public int getOrder() {
-        return 3;
-      }
-      
-      private int getFertilityCount(int[] prev, int from, int to, int word) {
-    	  if(from - to == 2) {
-    		  // return count
-    		  long prefix = trigram.getConcatenateIndex(prev[from], prev[from+1]);
-    		  return trigram.getPrefixWordCount(prefix, word);
-    	  }
-    	  else if(from - to == 1 || from - to == 0) {
-    		  return fc.getFertilityCount(prev, from, to, word)
-    	  }
-    	  return 0;
-      }
-      
-   
-      @Override
-      public double getNgramLogProbability(int[] ngram, int from, int to) {
-        if(to - from > 3) {
-          System.out.println("WARNING: to - from > 3 for Trigram LM");
-        }
-        
-        long prefix = ngram[0];
-        // int total = bigram.getPrefixWordCount(prefix, ngram[1]);
-		
-		if(from - to == 1) {
-			// unigram
-			return getFertilityCount(ngram, from, to-1, ngram[to-1]) / cc.getFertilityCount(ngram, from, to-1);
+		// Kneser-Ney Trigram Language Model
+		@Override
+		public int getOrder() {
+			return 3;
 		}
 		
-		// calculate alpha
-		double alpha = 1 - cc.getFertilityCountwithDiscount(ngram, from, to-1) / cc.getFertilityCount(ngram, from, to-1);
-        
-		double fertility = getFertilityCount(ngram, from, to-1, ngram[to-1]) - d;
-		if(fertility < 0.0) {
-			fertility = 0.0;
+		private int getFertilityCount(int[] prev, int from, int to, int word) {
+			if(from - to == 2) {
+				// return count
+				long prefix = trigram.getConcatenateIndex(prev[from], prev[from+1]);
+				return trigram.getPrefixWordCount(prefix, word);
+			}
+			else if(from - to == 1 || from - to == 0) {
+				return fc.getFertilityCount(prev, from, to, word);
+			}
+			return 0;
+		}
+		
+		private int getContextCount(int[] prev, int from, int to) {
+			if(from - to == 2) {
+				// return count
+				return bigram.getPrefixWordCount((long)prev[from], prev[from+1]);
+			}
+			else if(from - to == 1) {
+				return cc.getFertilityCount(prev, from, to);
+			}
+			return 0;
 		}
 
-		if(from - to == 1) {
-			return fertility / count;
+		private double getContextCountwithDiscount(int[] prev, int from, int to) {
+			if(from - to == 2) {
+				// return count
+				long prefix = trigram.getConcatenateIndex(prev[from], prev[from+1]);
+				return bigram.getPrefixWordCount((long)prev[from], prev[from+1]) - d * trigram.getWordNumber(prefix);
+			}
+			else if(from - to == 1) {
+				return cc.getFertilityCount(prev, from, to) - d * bigram.getWordNumber((long)prev[from]);
+			}
+			return 0;
 		}
+		
+	
+		@Override
+		public double getNgramLogProbability(int[] ngram, int from, int to) {
+			if(to - from > 3) {
+			System.out.println("WARNING: to - from > 3 for Trigram LM");
+			}
+			
+			long prefix = ngram[0];
 
-		double count = cc.getFertilityCount(ngram, from, to-1, ngram[to-1]);
+			double count = getContextCount(ngram, from, to-1);
 
-		return fertility / count + alpha * getNgramLogProbability(ngram, from + 1, to);
+			if(count == 0.0) {
+				return 0;
+			}
 
-      }
-    
-      @Override
-      public long getCount(int[] ngram) {
-        if(ngram.length == 1) {
-        	int word = ngram[0];
-        	if (word < 0 || word >= wordCounter.length) return 0;
-        	return wordCounter[word];
-        }
-        else if(ngram.length == 2) {
-        	return bigram.getPrefixWordCount((long) ngram[0], ngram[1]);
-        }
-        else if(ngram.length == 3) {
-        	long prefix = trigram.getConcatenateIndex(ngram[0], ngram[1]);
-        	return trigram.getPrefixWordCount(prefix, ngram[2]);
-        }
-        return 0;
-      }
+			if(from - to == 1) {
+				// unigram
+				return getFertilityCount(ngram, from, to-1, ngram[to-1]) / count;
+			}
+
+			double fertility = getFertilityCount(ngram, from, to-1, ngram[to-1]) - d;
+			if(fertility < 0.0) {
+				fertility = 0.0;
+			}
+
+			// calculate alpha
+			double alpha = 1 - getContextCountwithDiscount(ngram, from, to-1) / count;
+
+			return fertility / count + alpha * getNgramLogProbability(ngram, from + 1, to);
+
+		}
+		
+		@Override
+		public long getCount(int[] ngram) {
+			if(ngram.length == 1) {
+				int word = ngram[0];
+				if (word < 0 || word >= wordCounter.length) return 0;
+				return wordCounter[word];
+			}
+			else if(ngram.length == 2) {
+				return bigram.getPrefixWordCount((long) ngram[0], ngram[1]);
+			}
+			else if(ngram.length == 3) {
+				long prefix = trigram.getConcatenateIndex(ngram[0], ngram[1]);
+				return trigram.getPrefixWordCount(prefix, ngram[2]);
+			}
+			return 0;
+		}
     }; 
   }
 }

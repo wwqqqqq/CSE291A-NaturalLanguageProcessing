@@ -18,7 +18,7 @@ public class FertilityCount {
     }
     
     public FertilityCount(Iterable<List<String>> trainingData) {
-        HashMap<Long, Set<Integer>> FertilitySet;
+        HashMap<Long, Set<Integer>> FertilitySet = new HashMap<Long, Set<Integer>>();
         int sent = 0;
         for (List<String> sentence : trainingData) {
             sent++;

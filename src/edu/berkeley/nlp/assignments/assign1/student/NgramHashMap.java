@@ -43,6 +43,14 @@ public class NgramHashMap {
 			}
 		}
 		return 0;
-	}
+    }
+    
+    public int getWordNumber(long prefix) {
+        if(map.containsKey(prefix)) {
+			HashMap<Integer, Integer> innerMap = map.get(prefix);
+			return innerMap.size();
+		}
+		return 0;
+    }
 	
 }
