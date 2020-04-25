@@ -23,7 +23,11 @@ public class LmFactory implements LanguageModelFactory
     final String STOP = NgramLanguageModel.STOP;
     int[] unigramCounter = new int[5000000];    
     
-    System.out.println("Building Trigram Model . . .");
+	System.out.println("Building Trigram Model . . .");
+	
+	System.out.println("Building Fertility Map...");
+	FertilityCount fc = new FertilityCount(trainingData);
+	System.out.println("Done building Fertility Map.");
     
     System.out.println("Building wordCounter...");
 	int sent = 0;
@@ -56,12 +60,7 @@ public class LmFactory implements LanguageModelFactory
 	NgramModel trigram = new NgramModel(3, trainingData);
 	System.out.println("Done building Trigram Table.");
 
-	System.out.println("Building Fertility Map...");
-	FertilityCount fc = new FertilityCount(trainingData);
-	System.out.println("Done building Fertility Map.");
-
-
-	System.out.println("Done building Trigram Model.");
+		System.out.println("Done building Trigram Model.");
 	
     return new NgramLanguageModel(){
 		// Kneser-Ney Trigram Language Model
@@ -104,6 +103,38 @@ public class LmFactory implements LanguageModelFactory
 			}
 			return 0;
 		}
+
+		private double getNgramProbability(int[] ngram, int from, int to) {
+			for(int i = from; i < to; i++) {
+				if(ngram[i] >= wordCounter.length || ngram[i] < 0) {
+					return 0;
+				}
+			}
+
+			double count = getContextCount(ngram, from, to-1);
+
+			if(count == 0.0) {
+				if(from - to == 1) {
+					return 0;
+				}
+				return getNgramProbability(ngram, from + 1, to);
+			}
+
+			if(from - to == 1) {
+				// unigram
+				return getFertilityCount(ngram, from, to-1, ngram[to-1]) / count;
+			}
+
+			double fertility = getFertilityCount(ngram, from, to-1, ngram[to-1]) - NgramUtils.d;
+			if(fertility < 0.0) {
+				fertility = 0.0;
+			}
+
+			// calculate alpha
+			double alpha = 1 - getContextCountwithDiscount(ngram, from, to-1) / count;
+
+			return fertility / count + alpha * getNgramProbability(ngram, from + 1, to);
+		}
 		
 	
 		@Override
@@ -112,68 +143,11 @@ public class LmFactory implements LanguageModelFactory
 			System.out.println("WARNING: to - from > 3 for Trigram LM");
 			}
 
-			for(int i = from; i < to; i++) {
-				if(ngram[i] >= wordCounter.length || ngram[i] < 0) {
-					return -100;
-				}
+			double prob = getNgramProbability(ngram, from, to);
+			if(prob == 0) {
+				return -100;
 			}
-			
-			try {
-				if(to-from==3) {
-					long prefix = NgramUtils.getConcatenateIndex(ngram[from], ngram[from+1]);
-
-					double prob = trigram.getPrefixWordCount(prefix, ngram[from+2]);
-					int prefixCount = bigram.getPrefixWordCount(ngram[from], ngram[from+1]);
-					if(prob == 0) {
-						// System.out.println("WARNING: word count is 0");
-						return -100;
-					}
-					prob = prob / prefixCount;
-
-					return Math.log(prob);
-				}
-				else if(to-from==2) {
-					double prob = bigram.getPrefixWordCount(ngram[from], ngram[from+1]);
-					if(prob == 0) {
-						return -100;
-					}
-					prob = prob / wordCounter[ngram[from]];
-					return Math.log(prob);
-				}
-				else if(to-from==1) {
-					double prob = wordCounter[ngram[from]];
-					if(prob == 0) {
-						return -100;
-					}
-					prob = prob / wordCounter.length;
-					return Math.log(prob);
-				}
-			}
-			catch(Exception e) {
-				System.out.println("Something went wrong in getNgramLogProbability.");
-			}
-			return -100;
-
-			// double count = getContextCount(ngram, from, to-1);
-
-			// if(count == 0.0) {
-			// 	return 0;
-			// }
-
-			// if(from - to == 1) {
-			// 	// unigram
-			// 	return getFertilityCount(ngram, from, to-1, ngram[to-1]) / count;
-			// }
-
-			// double fertility = getFertilityCount(ngram, from, to-1, ngram[to-1]) - NgramUtils.d;
-			// if(fertility < 0.0) {
-			// 	fertility = 0.0;
-			// }
-
-			// // calculate alpha
-			// double alpha = 1 - getContextCountwithDiscount(ngram, from, to-1) / count;
-
-			// return fertility / count + alpha * getNgramLogProbability(ngram, from + 1, to);
+			return Math.log(prob);
 
 		}
 		

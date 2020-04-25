@@ -12,6 +12,10 @@ public class NgramUtils {
 		ind1l = (ind1l << 20) | ind2l;
 		return ind1l;
     }
+
+    public static long getConcatenateIndex(long ind1, long ind2) {
+        return (ind1 << 40) | ind2;
+    }
     
     static final public double d = 0.75;
 }

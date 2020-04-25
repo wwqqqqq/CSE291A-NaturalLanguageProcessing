@@ -17,13 +17,15 @@ public class FertilityCount {
     NgramHashMap MiddleCounter;
 
     public FertilityCount(Iterable<List<String>> trainingData) {
-        // BuildMiddleCounter(trainingData);
-        // BuildPrefixCounter(trainingData);
-        // BuildSuffixCounter(trainingData);
+        BuildMiddleCounter(trainingData);
+        BuildPrefixCounter(trainingData);
+        BuildSuffixCounter(trainingData);
     }
 
     private void BuildSuffixCounter(Iterable<List<String>> trainingData) {
-        HashMap<Long, Set<Long>> SuffixSet = new HashMap<Long, Set<Long>>();
+        System.out.println("BuildSuffixCounter");        
+        Set<Long> SuffixSet = new HashSet<Long>();
+        SuffixCounter = new NgramHashMap(2);
         int sent = 0;
         for (List<String> sentence : trainingData) {
             sent++;
@@ -35,45 +37,30 @@ public class FertilityCount {
             for (String word : stoppedSentence) {
                 int index = EnglishWordIndexer.getIndexer().addAndGetIndex(word);
                 long suffix = NgramUtils.getConcatenateIndex(N1, index);
-                
-                if(SuffixSet.containsKey(suffix)) {
-                    Set<Long> set = SuffixSet.get(suffix);
-                    set.add((long)N2);
-                    SuffixSet.put(suffix, set);
-                }
-                else {
-                    Set<Long> set = new HashSet<Long>();
-                    set.add((long)N2);
-                    SuffixSet.put(suffix, set);
+                long key = NgramUtils.getConcatenateIndex(suffix, N2);
+
+                if(!SuffixSet.contains(key)) {
+                    SuffixCounter.addOne(suffix);
+                    SuffixSet.add(key);
                 }
 
                 suffix = index;
-                if(SuffixSet.containsKey(suffix)) {
-                    Set<Long> set = SuffixSet.get(suffix);
-                    set.add((long)N1);
-                    SuffixSet.put(suffix, set);
-                }
-                else {
-                    Set<Long> set = new HashSet<Long>();
-                    set.add((long)N1);
-                    SuffixSet.put(suffix, set);
+                key = NgramUtils.getConcatenateIndex(suffix, N1);
+                if(!SuffixSet.contains(key)) {
+                    SuffixCounter.addOne(suffix);
+                    SuffixSet.add(key);
                 }
 
                 N2 = N1;
                 N1 = index;
             }
-
-            SuffixCounter = new NgramHashMap(2);
-
-            for(Map.Entry<Long, Set<Long>> entry : SuffixSet.entrySet()) {
-                Set<Long> s = entry.getValue();
-                SuffixCounter.put(entry.getKey(), s.size());
-            }
         }
     }
 
     private void BuildPrefixCounter(Iterable<List<String>> trainingData) {
-        HashMap<Long, Set<Long>> PrefixSet = new HashMap<Long, Set<Long>>();
+        System.out.println("BuildPrefixCounter");   
+        Set<Long> PrefixSet = new HashSet<Long>();
+        PrefixCounter = new NgramHashMap(2);
         int sent = 0;
         for (List<String> sentence : trainingData) {
             sent++;
@@ -86,45 +73,31 @@ public class FertilityCount {
                 int index = EnglishWordIndexer.getIndexer().addAndGetIndex(word);
 
                 long prefix = NgramUtils.getConcatenateIndex(N2, N1);
-                if(PrefixSet.containsKey(prefix)) {
-                    Set<Long> set = PrefixSet.get(prefix);
-                    set.add((long)index);
-                    PrefixSet.put(prefix, set);
-                }
-                else {
-                    Set<Long> set = new HashSet<Long>();
-                    set.add((long)index);
-                    PrefixSet.put(prefix, set);
+                long key = NgramUtils.getConcatenateIndex(prefix, index);
+
+                if(!PrefixSet.contains(key)) {
+                    PrefixCounter.addOne(prefix);
+                    PrefixSet.add(key);
                 }
 
                 prefix = N1;
-                if(PrefixSet.containsKey(prefix)) {
-                    Set<Long> set = PrefixSet.get(prefix);
-                    set.add((long)index);
-                    PrefixSet.put(prefix, set);
-                }
-                else {
-                    Set<Long> set = new HashSet<Long>();
-                    set.add((long)index);
-                    PrefixSet.put(prefix, set);
+                key = NgramUtils.getConcatenateIndex(prefix, index);
+                if(!PrefixSet.contains(key)) {
+                    PrefixCounter.addOne(prefix);
+                    PrefixSet.add(key);
                 }
 
                 N2 = N1;
                 N1 = index;
             }
 
-            PrefixCounter = new NgramHashMap(2);
-
-            for(Map.Entry<Long, Set<Long>> entry : PrefixSet.entrySet()) {
-                Set<Long> s = entry.getValue();
-                PrefixCounter.put(entry.getKey(), s.size());
-            }
-
         }
     }
     
     private void BuildMiddleCounter(Iterable<List<String>> trainingData) {
-        HashMap<Long, Set<Long>> MiddleSet = new HashMap<Long, Set<Long>>();
+        System.out.println("BuildMiddleCounter");   
+        Set<Long> MiddleSet = new HashSet<Long>();
+        MiddleCounter = new NgramHashMap(1);
         int sent = 0;
         for (List<String> sentence : trainingData) {
             sent++;
@@ -135,29 +108,17 @@ public class FertilityCount {
             int N1 = N2;
             for (String word : stoppedSentence) {
                 int index = EnglishWordIndexer.getIndexer().addAndGetIndex(word);
-                long middle = N1;
                 long context = NgramUtils.getConcatenateIndex(N2, index);
-                
-                if(MiddleSet.containsKey(middle)) {
-                    Set<Long> set = MiddleSet.get(middle);
-                    set.add(context);
-                    MiddleSet.put(middle, set);
-                }
-                else {
-                    Set<Long> set = new HashSet<Long>();
-                    set.add(context);
-                    MiddleSet.put(middle, set);
+                long middle = N1;
+                long key = NgramUtils.getConcatenateIndex(middle, context);
+
+                if(!MiddleSet.contains(key)) {
+                    MiddleCounter.addOne(middle);
+                    MiddleSet.add(key);
                 }
 
                 N2 = N1;
                 N1 = index;
-            }
-
-            MiddleCounter = new NgramHashMap(1);
-
-            for(Map.Entry<Long, Set<Long>> entry : MiddleSet.entrySet()) {
-                Set<Long> s = entry.getValue();
-                MiddleCounter.put(entry.getKey(), s.size());
             }
 
         }
