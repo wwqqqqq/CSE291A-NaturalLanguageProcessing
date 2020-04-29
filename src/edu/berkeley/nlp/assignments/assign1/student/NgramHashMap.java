@@ -140,4 +140,17 @@ public class NgramHashMap {
 		}
 		return accessMapIndex(index).value;
 	}
+
+	public void print(int size) {
+		int count = 0;
+		for(int i = 0; i < map.length; i++) {
+			if(map[i] != null) {
+				System.out.printf("%d\t%d\n",i,map[i].value);
+				count++;
+				if(count > size) {
+					break;
+				}
+			}
+		}
+	}
 }

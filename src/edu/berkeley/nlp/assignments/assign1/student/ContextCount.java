@@ -56,13 +56,13 @@ public class ContextCount {
     }
 
     public int getFertilityCount(int[] prev, int from, int to) {
-        if(from - to == 2) {
+        if(to - from == 2) {
             long middle = getConcatenateIndex(prev[from], prev[from+1]);
             if(FertilityCounter.containsKey(middle)) {
                 return FertilityCounter.get(middle);
             }
         }
-        else if(from - to == 1) {
+        else if(to - from == 1) {
             long middle = prev[from];
             if(FertilityCounter.containsKey(middle)) {
                 return FertilityCounter.get(middle);
