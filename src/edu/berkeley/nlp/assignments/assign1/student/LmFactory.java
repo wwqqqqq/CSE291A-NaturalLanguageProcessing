@@ -78,14 +78,14 @@ public class LmFactory implements LanguageModelFactory
 			if(from >= to || from >= prev.length || to < 0) {
 				return 0;
 			}
-			if(from - to == 3) {
+			if(to - from == 3) {
 				// return count
 				long prefix = NgramUtils.getConcatenateIndex(prev[from], prev[from+1]);
 				return trigram.getPrefixWordCount(prefix, prev[from+2]);
 			}
-			// else if(from - to == 2 || from - to == 1) {
-			// 	return fc.getFertilityCountforSuffix(prev, from, to-1, prev[to-1]);
-			// }
+			else if(to - from == 2 || to - from == 1) {
+				return fc.getFertilityCountforSuffix(prev, from, to-1, prev[to-1]);
+			}
 			return 0;
 		}
 		
@@ -98,17 +98,17 @@ public class LmFactory implements LanguageModelFactory
 			if(from > to || from >= prev.length || to < 0) {
 				return 0;
 			}
-			if(from - to == 2) {
+			if(to - from == 2) {
 				// return count
 				// sum_v count(prev, v)
 				return bigram.getPrefixWordCount((long)prev[from], prev[from+1]);
 			}
-			// else if(from - to == 1) {
-			// 	return fc.getFertilityCountforMiddle(prev, from, to);
-			// }
-			// else if(from - to == 0) {
-			// 	return fc.getBigramCount();
-			// }
+			else if(to - from == 1) {
+				return fc.getFertilityCountforMiddle(prev, from, to);
+			}
+			else if(to - from == 0) {
+				return fc.getBigramCount();
+			}
 			return 0;
 		}
 
@@ -116,11 +116,11 @@ public class LmFactory implements LanguageModelFactory
 			if(from >= to || from >= prev.length || to < 0) {
 				return 0;
 			}
-			if(from - to == 2) {
+			if(to - from == 2) {
 				// return count
 				return NgramUtils.d * fc.getFertilityCountforPrefix(prev, from, to);
 			}
-			else if(from - to == 1) {
+			else if(to - from == 1) {
 				return NgramUtils.d * fc.getFertilityCountforPrefix(prev, from, to);
 			}
 			return 0;
@@ -142,7 +142,7 @@ public class LmFactory implements LanguageModelFactory
 				return getNgramProbability(ngram, from + 1, to);
 			}
 
-			if(from - to == 1) {
+			if(to - from == 1) {
 				// unigram
 				return getFertilityCount(ngram, from, to) / count;
 			}
@@ -153,9 +153,9 @@ public class LmFactory implements LanguageModelFactory
 			}
 
 			// calculate alpha
-			// double alpha = getDiscount(ngram, from, to-1) / count;
+			double alpha = getDiscount(ngram, from, to-1) / count;
 
-			return (fertility / count);// + (alpha * getNgramProbability(ngram, from + 1, to));
+			return (fertility / count) + (alpha * getNgramProbability(ngram, from + 1, to));
 		}
 		
 	

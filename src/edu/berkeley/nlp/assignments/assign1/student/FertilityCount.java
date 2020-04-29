@@ -18,12 +18,12 @@ public class FertilityCount {
     int count = 0;
 
     public FertilityCount(Iterable<List<String>> trainingData) {
-        // BuildSuffixCounter(trainingData);
-        // SuffixCounter.print(10);
-        // BuildMiddleCounter(trainingData);
-        // MiddleCounter.print(10);
-        // BuildPrefixCounter(trainingData);
-        // PrefixCounter.print(10);
+        BuildSuffixCounter(trainingData);
+        SuffixCounter.print(10);
+        BuildMiddleCounter(trainingData);
+        MiddleCounter.print(10);
+        BuildPrefixCounter(trainingData);
+        PrefixCounter.print(10);
     }
 
     private void BuildSuffixCounter(Iterable<List<String>> trainingData) {
@@ -143,13 +143,13 @@ public class FertilityCount {
 
     public int getFertilityCountforSuffix(int[] prev, int from, int to, int word) {
         // c'(x) = |{u: c(u,x)>0}|
-        if(from - to == 1) {
+        if(to - from == 1) {
             long suffix = NgramUtils.getConcatenateIndex(prev[from], word);
             if(SuffixCounter.containsKey(suffix)) {
                 return SuffixCounter.get(suffix);
             }
         }
-        else if(from - to == 0) {
+        else if(to - from == 0) {
             long suffix = word;
             if(SuffixCounter.containsKey(suffix)) {
                 return SuffixCounter.get(suffix);
@@ -159,13 +159,13 @@ public class FertilityCount {
     }
 
     public int getFertilityCountforMiddle(int[] prev, int from, int to) {
-        if(from - to == 2) {
+        if(to - from == 2) {
             long middle = NgramUtils.getConcatenateIndex(prev[from], prev[from+1]);
             if(MiddleCounter.containsKey(middle)) {
                 return MiddleCounter.get(middle);
             }
         }
-        else if(from - to == 1) {
+        else if(to - from == 1) {
             long middle = prev[from];
             if(MiddleCounter.containsKey(middle)) {
                 return MiddleCounter.get(middle);
@@ -175,13 +175,13 @@ public class FertilityCount {
     }
 
     public int getFertilityCountforPrefix(int[] prev, int from, int to) {
-        if(from - to == 2) {
+        if(to - from == 2) {
             long prefix = NgramUtils.getConcatenateIndex(prev[from], prev[from+1]);
             if(PrefixCounter.containsKey(prefix)) {
                 return PrefixCounter.get(prefix);
             }
         }
-        else if(from - to == 1) {
+        else if(to - from == 1) {
             long prefix = prev[from];
             if(PrefixCounter.containsKey(prefix)) {
                 return PrefixCounter.get(prefix);

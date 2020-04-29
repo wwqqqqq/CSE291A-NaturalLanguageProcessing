@@ -17,5 +17,5 @@ public class NgramUtils {
         return (ind1 << 40) | ind2;
     }
     
-    static final public double d = 0;
+    static final public double d = 0.8;
 }
