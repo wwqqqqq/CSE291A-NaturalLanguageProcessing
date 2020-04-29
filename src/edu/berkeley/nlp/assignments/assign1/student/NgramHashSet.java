@@ -18,7 +18,7 @@ public class NgramHashSet {
 		else {
 			System.out.println("WARNING: Order > 3 in NgramHashSet.");
 		}
-		map = new Long[estimate_max_size];
+        map = new Long[estimate_max_size];
 		count = 0;
 	}
 
@@ -39,7 +39,7 @@ public class NgramHashSet {
 			return 0;
 		}
 		for(; index < map.length; index++) {
-			if(map[index] == 0) {
+			if(map[index] == null) {
 				map[index] = key;
 				return index;
 			}
@@ -48,7 +48,7 @@ public class NgramHashSet {
 			}
 		}
 		for(index = 0; index < h && index < map.length; index++) {
-			if(map[index] == 0) {
+			if(map[index] == null) {
 				map[index] = key;
 				return index;
 			}
@@ -65,7 +65,7 @@ public class NgramHashSet {
 		int h = hash(key);
 		int index = h;
 		for(; index < map.length; index++) {
-			if(map[index] == 0) {
+			if(map[index] == null) {
 				return -1;
 			}
 			if(map[index] == key) {
@@ -73,7 +73,7 @@ public class NgramHashSet {
 			}
 		}
 		for(index = 0; index < h && index < map.length; index++) {
-			if(map[index] == 0) {
+			if(map[index] == null) {
 				return -1;
 			}
 			if(map[index] == key) {
@@ -83,7 +83,7 @@ public class NgramHashSet {
 		return -1;
 	}
 
-	public boolean containsKey(long key) {
+	public boolean contains(long key) {
 		int index = findIndex(key);
 		if(index < 0) {
 			return false;

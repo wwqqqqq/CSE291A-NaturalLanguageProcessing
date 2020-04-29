@@ -15,40 +15,46 @@ public class FertilityCount {
     NgramHashMap SuffixCounter;
     NgramHashMap PrefixCounter;
     NgramHashMap MiddleCounter;
+    int count = 0;
 
     public FertilityCount(Iterable<List<String>> trainingData) {
-        BuildMiddleCounter(trainingData);
-        BuildPrefixCounter(trainingData);
         BuildSuffixCounter(trainingData);
+        SuffixCounter.print(10);
+        BuildMiddleCounter(trainingData);
+        MiddleCounter.print(10);
+        BuildPrefixCounter(trainingData);
+        PrefixCounter.print(10);
     }
 
     private void BuildSuffixCounter(Iterable<List<String>> trainingData) {
         System.out.println("BuildSuffixCounter");        
-        Set<Long> SuffixSet = new HashSet<Long>();
+        NgramHashSet SuffixSet3 = new NgramHashSet(3);
+        NgramHashSet SuffixSet2 = new NgramHashSet(2);
         SuffixCounter = new NgramHashMap(2);
         int sent = 0;
+        int START = EnglishWordIndexer.getIndexer().addAndGetIndex(NgramLanguageModel.START);
         for (List<String> sentence : trainingData) {
             sent++;
             if (sent % 1000000 == 0) System.out.println("On sentence " + sent);
             List<String> stoppedSentence = new ArrayList<String>(sentence);
             stoppedSentence.add(NgramLanguageModel.STOP);
-            int N2 = EnglishWordIndexer.getIndexer().addAndGetIndex(NgramLanguageModel.START);
+            int N2 = START;
             int N1 = N2;
             for (String word : stoppedSentence) {
                 int index = EnglishWordIndexer.getIndexer().addAndGetIndex(word);
                 long suffix = NgramUtils.getConcatenateIndex(N1, index);
                 long key = NgramUtils.getConcatenateIndex(suffix, N2);
-
-                if(!SuffixSet.contains(key)) {
+                
+                if(N1 != START && !SuffixSet3.contains(key)) {
                     SuffixCounter.addOne(suffix);
-                    SuffixSet.add(key);
+                    SuffixSet3.add(key);
                 }
 
                 suffix = index;
                 key = NgramUtils.getConcatenateIndex(suffix, N1);
-                if(!SuffixSet.contains(key)) {
+                if(!SuffixSet2.contains(key)) {
                     SuffixCounter.addOne(suffix);
-                    SuffixSet.add(key);
+                    SuffixSet2.add(key);
                 }
 
                 N2 = N1;
@@ -59,15 +65,17 @@ public class FertilityCount {
 
     private void BuildPrefixCounter(Iterable<List<String>> trainingData) {
         System.out.println("BuildPrefixCounter");   
-        Set<Long> PrefixSet = new HashSet<Long>();
+        NgramHashSet PrefixSet3 = new NgramHashSet(3);
+        NgramHashSet PrefixSet2 = new NgramHashSet(2);
         PrefixCounter = new NgramHashMap(2);
         int sent = 0;
+        int START = EnglishWordIndexer.getIndexer().addAndGetIndex(NgramLanguageModel.START);
         for (List<String> sentence : trainingData) {
             sent++;
             if (sent % 1000000 == 0) System.out.println("On sentence " + sent);
             List<String> stoppedSentence = new ArrayList<String>(sentence);
             stoppedSentence.add(NgramLanguageModel.STOP);
-            int N2 = EnglishWordIndexer.getIndexer().addAndGetIndex(NgramLanguageModel.START);
+            int N2 = START;
             int N1 = N2;
             for (String word : stoppedSentence) {
                 int index = EnglishWordIndexer.getIndexer().addAndGetIndex(word);
@@ -75,16 +83,16 @@ public class FertilityCount {
                 long prefix = NgramUtils.getConcatenateIndex(N2, N1);
                 long key = NgramUtils.getConcatenateIndex(prefix, index);
 
-                if(!PrefixSet.contains(key)) {
+                if(N1 != START && N2 != START && !PrefixSet3.contains(key)) {
                     PrefixCounter.addOne(prefix);
-                    PrefixSet.add(key);
+                    PrefixSet3.add(key);
                 }
 
                 prefix = N1;
                 key = NgramUtils.getConcatenateIndex(prefix, index);
-                if(!PrefixSet.contains(key)) {
+                if(N1 != START && !PrefixSet2.contains(key)) {
                     PrefixCounter.addOne(prefix);
-                    PrefixSet.add(key);
+                    PrefixSet2.add(key);
                 }
 
                 N2 = N1;
@@ -96,15 +104,17 @@ public class FertilityCount {
     
     private void BuildMiddleCounter(Iterable<List<String>> trainingData) {
         System.out.println("BuildMiddleCounter");   
-        Set<Long> MiddleSet = new HashSet<Long>();
+        NgramHashSet MiddleSet = new NgramHashSet(3);
+        NgramHashSet Bigram = new NgramHashSet(2);
         MiddleCounter = new NgramHashMap(1);
         int sent = 0;
+        int START = EnglishWordIndexer.getIndexer().addAndGetIndex(NgramLanguageModel.START);
         for (List<String> sentence : trainingData) {
             sent++;
             if (sent % 1000000 == 0) System.out.println("On sentence " + sent);
             List<String> stoppedSentence = new ArrayList<String>(sentence);
             stoppedSentence.add(NgramLanguageModel.STOP);
-            int N2 = EnglishWordIndexer.getIndexer().addAndGetIndex(NgramLanguageModel.START);
+            int N2 = START;
             int N1 = N2;
             for (String word : stoppedSentence) {
                 int index = EnglishWordIndexer.getIndexer().addAndGetIndex(word);
@@ -112,9 +122,16 @@ public class FertilityCount {
                 long middle = N1;
                 long key = NgramUtils.getConcatenateIndex(middle, context);
 
-                if(!MiddleSet.contains(key)) {
+                if(N1 != START && !MiddleSet.contains(key)) {
                     MiddleCounter.addOne(middle);
                     MiddleSet.add(key);
+                }
+
+                key = NgramUtils.getConcatenateIndex(N1, index);
+
+                if(N1 != START && !Bigram.contains(key)) {
+                    count++;
+                    Bigram.add(key);
                 }
 
                 N2 = N1;
@@ -125,13 +142,14 @@ public class FertilityCount {
     }
 
     public int getFertilityCountforSuffix(int[] prev, int from, int to, int word) {
-        if(from - to == 1) {
+        // c'(x) = |{u: c(u,x)>0}|
+        if(to - from == 1) {
             long suffix = NgramUtils.getConcatenateIndex(prev[from], word);
             if(SuffixCounter.containsKey(suffix)) {
                 return SuffixCounter.get(suffix);
             }
         }
-        else if(from - to == 0) {
+        else if(to - from == 0) {
             long suffix = word;
             if(SuffixCounter.containsKey(suffix)) {
                 return SuffixCounter.get(suffix);
@@ -141,13 +159,13 @@ public class FertilityCount {
     }
 
     public int getFertilityCountforMiddle(int[] prev, int from, int to) {
-        if(from - to == 2) {
+        if(to - from == 2) {
             long middle = NgramUtils.getConcatenateIndex(prev[from], prev[from+1]);
             if(MiddleCounter.containsKey(middle)) {
                 return MiddleCounter.get(middle);
             }
         }
-        else if(from - to == 1) {
+        else if(to - from == 1) {
             long middle = prev[from];
             if(MiddleCounter.containsKey(middle)) {
                 return MiddleCounter.get(middle);
@@ -157,19 +175,23 @@ public class FertilityCount {
     }
 
     public int getFertilityCountforPrefix(int[] prev, int from, int to) {
-        if(from - to == 2) {
+        if(to - from == 2) {
             long prefix = NgramUtils.getConcatenateIndex(prev[from], prev[from+1]);
             if(PrefixCounter.containsKey(prefix)) {
                 return PrefixCounter.get(prefix);
             }
         }
-        else if(from - to == 1) {
+        else if(to - from == 1) {
             long prefix = prev[from];
             if(PrefixCounter.containsKey(prefix)) {
                 return PrefixCounter.get(prefix);
             }
         }
         return 0;
+    }
+
+    public int getBigramCount() {
+        return count;
     }
 
 }
