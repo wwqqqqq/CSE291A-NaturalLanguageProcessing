@@ -28,12 +28,28 @@ public class NgramUtils {
 			estimate_max_size = 16000001; // 8374230
 		}
 		else if(n == 3) {
-			estimate_max_size = 50000001; // 25760367
+			estimate_max_size = 50000001; // 41736000
 		}
 		else {
 			System.out.println("WARNING: Order > 3 in NgramHashSet.");
         }
         return estimate_max_size;
+    }
+
+    public static int exactSize(int n) {
+        if(n == 1) {
+			return 495174; // 495172
+		}
+		else if(n == 2) {
+			return 8374232; // 8374230
+		}
+		else if(n == 3) {
+			return 41736002; // 41736000
+		}
+		else {
+			System.out.println("WARNING: Order > 3 in NgramHashSet.");
+        }
+        return 0;
     }
 
     public static int hash(long key) {

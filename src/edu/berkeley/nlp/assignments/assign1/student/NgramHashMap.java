@@ -2,85 +2,25 @@ package edu.berkeley.nlp.assignments.assign1.student;
 
 public class NgramHashMap {
 	// HashMap<Long, HashMap<Integer, Integer>> map = new HashMap<Long, HashMap<Integer, Integer>>();
-	private HashMapEntry[] map;
-	private int estimate_max_size;
+	// private HashMapEntry[] map;
+	private int[] value;
+	private RankTable rankTable;
+	private int max_size;
 	private int count;
 
 	public NgramHashMap(int n) {
-		estimate_max_size = NgramUtils.estimateSize(n);
-		map = new HashMapEntry[estimate_max_size];
+		max_size = NgramUtils.exactSize(n);
+		rankTable = new RankTable(n);
+		value = new int[max_size];
 		count = 0;
 	}
 
-	private int hash(long key) {
-		int h = NgramUtils.hash(key);
-		return (h % (estimate_max_size));
-	}
-
-	private int addIndex(long key) {
-		int h = hash(key);
-		int index = h;
-		if(index >= map.length || count >= map.length) {
-			System.out.println("WARNING: INDEX > ESTIMATE_SIZE");
-			return 0;
-		}
-		for(; index < map.length; index++) {
-			if(map[index] == null) {
-				map[index] = new HashMapEntry(key);
-				count++;
-				return index;
-			}
-			if(map[index].word == key) {
-				return index;
-			}
-		}
-		for(index = 0; index < h && index < map.length; index++) {
-			if(map[index] == null) {
-				map[index] = new HashMapEntry(key);
-				count++;
-				return index;
-			}
-			if(map[index].word == key) {
-				return index;
-			}
-		}
-
-		System.out.println("WARNING: NgramHashMap: nowhere to add index.");
-		return 0;
-	}
-
 	private int findIndex(long key) {
-		int h = hash(key);
-		int index = h;
-		for(; index < map.length; index++) {
-			if(map[index] == null || map[index].value == 0) {
-				return -1;
-			}
-			if(map[index].word == key) {
-				return index;
-			}
+		int index = rankTable.getKeyRank(key);
+		if(index < 0 || index >= value.length) {
+			return -1;
 		}
-		for(index = 0; index < h && index < map.length; index++) {
-			if(map[index] == null || map[index].value == 0) {
-				return -1;
-			}
-			if(map[index].word == key) {
-				return index;
-			}
-		}
-		return -1;
-	}
-
-	private HashMapEntry accessMapIndex(int index) {
-		if(index >= map.length || index < 0) {
-			// System.out.println("WARNING: NgramHashMap: Index out of Boundary!");
-			return null;
-		}
-		if(map[index] == null) {
-			// System.out.println("WARNING: NgramHashMap: access null entry!");
-			return null;
-		}
-		return map[index];
+		return index;
 	}
 	
 	public boolean containsKey(long key) {
@@ -92,14 +32,19 @@ public class NgramHashMap {
 	}
 
 	public int addOne(long key) {
-		int index = addIndex(key);
-		map[index].value++;
-		return index;
+		int rank = rankTable.insertKey(key);
+		if(rank < 0 || rank >= value.length) {
+			System.out.println("NgramHashMap: out of bound exception");
+			System.out.printf("Rank = %d, length = %d\n",rank,value.length);
+			return -1;
+		}
+		value[rank]++;
+		return rank;
 	}
 
-	public int put(long key, int value) {
-		int index = addIndex(key);
-		map[index].value = value;
+	public int put(long key, int val) {
+		int index = rankTable.insertKey(key);
+		value[index] = val;
 		return index;
 	}
 
@@ -113,26 +58,24 @@ public class NgramHashMap {
 
 	public int getKeyValue(long key) {
 		int index = findIndex(key);
-		HashMapEntry he = accessMapIndex(index);
-        if(he == null) {
-            return 0;
-        }
-        return he.value;
+		if(index < 0) {
+			return 0;
+		}
+        return value[index];
 	}
 
 	public int getIndexValue(int index) {
-		HashMapEntry he = accessMapIndex(index);
-        if(he == null) {
-            return 0;
-        }
-        return he.value;
+		if(index < 0) {
+			return 0;
+		}
+        return value[index];
 	}
 
 	public void print(int size) {
 		int count = 0;
-		for(int i = 0; i < map.length; i++) {
-			if(map[i] != null) {
-				System.out.printf("%d\t%d\n",i,map[i].value);
+		for(int i = 0; i < value.length; i++) {
+			if(value[i] != 0) {
+				System.out.printf("%d\t%d\n",i,value[i]);
 				count++;
 				if(count > size) {
 					break;
@@ -143,9 +86,9 @@ public class NgramHashMap {
 
 	public void print_last(int size) {
 		int count = 0;
-		for(int i = map.length-1; i >= 0; i--) {
-			if(map[i] != null) {
-				System.out.printf("%d\t%d\n",i,map[i].value);
+		for(int i = value.length-1; i >= 0; i--) {
+			if(value[i] != 0) {
+				System.out.printf("%d\t%d\n",i,value[i]);
 				count++;
 				if(count > size) {
 					break;

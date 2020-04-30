@@ -1,49 +1,39 @@
 package edu.berkeley.nlp.assignments.assign1.student;
 
 public class UnigramMap {
-    private UnigramEntry[] map;
+    public int[] value;
+    public int[] prefixCount;
+    public int[] suffixCount;
+    public int[] middleCount;
     private int estimate_max_size;
     private int count;
 
     public UnigramMap() {
-        estimate_max_size = NgramUtils.estimateSize(1);
-        map = new UnigramEntry[estimate_max_size];
+        estimate_max_size = NgramUtils.exactSize(1);
+        value = new int[estimate_max_size];
+        prefixCount = new int[estimate_max_size];
+        suffixCount = new int[estimate_max_size];
+        middleCount = new int[estimate_max_size];
         count = 0;
     }
 
     private int addIndex(int key) {
-        if(key < 0 || key >= map.length) {
+        if(key < 0 || key >= value.length) {
             System.out.println("WARNING: UnigramMap: index out of bound");
-        }
-        if(map[key] == null) {
-            map[key] = new UnigramEntry();
         }
         return key;
     }
 
-    private int findIndex(int key) {
-        int index = key;
-        if(index < 0 || index >= map.length) {
+    private int findIndex(int index) {
+        if(index < 0 || index >= value.length) {
             return -1;
         }
         return index;
     }
 
-    private UnigramEntry accessMapIndex(int index) {
-        if(index >= map.length || index < 0) {
-            // System.out.println("WARNING: UnigramMap: Index out of Boundary!");
-            return null;
-        }
-        if(map[index] == null) {
-            // System.out.println("WARNING: UnigramMap: access null entry!");
-            return null;
-        }
-        return map[index];
-    }
-
     public boolean containsKey(int key) {
         int index = findIndex(key);
-        if(index < 0 || index >= map.length) {
+        if(index < 0 || index >= value.length) {
             return false;
         }
         return true;
@@ -54,81 +44,86 @@ public class UnigramMap {
     }
 
     public int addValue(int index) {
-        map[index].value++;
+        if(index < 0 || index >= value.length) {
+            return -1;
+        }
+        value[index]++;
         return index;
     }
 
     public int addPrefixCount(int index) {
-        map[index].prefixCount++;
+        if(index < 0 || index >= value.length) {
+            return -1;
+        }
+        prefixCount[index]++;
         return index;
     }
 
     public int addSuffixCount(int index) {
-        map[index].suffixCount++;
+        if(index < 0 || index >= value.length) {
+            return -1;
+        }
+        suffixCount[index]++;
         return index;
     }
 
     public int addMiddleCount(int index) {
-        map[index].middleCount++;
+        if(index < 0 || index >= value.length) {
+            return -1;
+        }
+        middleCount[index]++;
         return index;
     }
 
     public int getValue(int index) {
-        UnigramEntry ue = accessMapIndex(index);
-        if(ue == null) {
+        if(index < 0 || index >= value.length) {
             return 0;
         }
-        return ue.value;
+        return value[index];
     }
 
     public int getPrefixCount(int index) {
-        UnigramEntry ue = accessMapIndex(index);
-        if(ue == null) {
+        if(index < 0 || index >= value.length) {
             return 0;
         }
-        return ue.prefixCount;
+        return prefixCount[index];
     }
 
     public int getSuffixCount(int index) {
-        UnigramEntry ue = accessMapIndex(index);
-        if(ue == null) {
+        if(index < 0 || index >= value.length) {
             return 0;
         }
-        return ue.suffixCount;
+        return suffixCount[index];
     }
 
     public int getMiddleCount(int index) {
-        UnigramEntry ue = accessMapIndex(index);
-        if(ue == null) {
+        if(index < 0 || index >= value.length) {
             return 0;
         }
-        return ue.middleCount;
+        return middleCount[index];
     }
 
     public void print(int size) {
         int count = 0;
-        for(int i = 0; i < map.length; i++) {
-            if(map[i] != null) {
-                System.out.printf("%d\t%d\t%d\t%d\t%d\n",i,map[i].value,map[i].prefixCount,map[i].suffixCount,map[i].middleCount);
-                count++;
-                if(count > size) {
-                    break;
-                }
+        for(int i = 0; i < value.length; i++) {
+            System.out.printf("%d\t%d\t%d\t%d\t%d\n",i,value[i],prefixCount[i],suffixCount[i],middleCount[i]);
+            count++;
+            if(count > size) {
+                break;
             }
         }
     }
 
     public void print_last(int size) {
         int count = 0;
-        for(int i = map.length - 1; i >= 0; i--) {
-            if(map[i] != null) {
-                System.out.printf("%d\t%d\t%d\t%d\t%d\n",i,map[i].value,map[i].prefixCount,map[i].suffixCount,map[i].middleCount);
-                count++;
-                if(count > size) {
-                    break;
-                }
+        for(int i = value.length - 1; i >= 0; i--) {
+            System.out.printf("%d\t%d\t%d\t%d\t%d\n",i,value[i],prefixCount[i],suffixCount[i],middleCount[i]);
+            count++;
+            if(count > size) {
+                break;
             }
         }
     }
+
 
 }

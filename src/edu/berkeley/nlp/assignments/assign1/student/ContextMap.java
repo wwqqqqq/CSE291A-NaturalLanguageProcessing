@@ -1,90 +1,44 @@
 package edu.berkeley.nlp.assignments.assign1.student;
 
 public class ContextMap {
-    private ContextEntry[] map;
-    private int estimate_max_size;
+    // private ContextEntry[] map;
+    private int max_size;
     private int count;
+    private RankTable rankTable;
+    private int[] value;
+    private int[] prefixCount;
+    private int[] suffixCount;
 
     public ContextMap(int n) {
-        estimate_max_size = NgramUtils.estimateSize(n);
-        map = new ContextEntry[estimate_max_size];
+        max_size = NgramUtils.exactSize(n);
+        rankTable = new RankTable(n);
+        value = new int[max_size];
+        prefixCount = new int[max_size];
+        suffixCount = new int[max_size];
         count = 0;
     }
 
-    private int hash(long key) {
-        int h = NgramUtils.hash(key);
-        return (h % (estimate_max_size));
-    }
-
     private int addIndex(long key) {
-        int h = hash(key);
-        int index = h;
-        if(index >= map.length || count >= map.length) {
-            System.out.println("WARNING: INDEX > ESTIMATE_SIZE");
-            return 0;
+        int rank = rankTable.insertKey(key);
+        if(rank < 0 || rank >= value.length) {
+            System.out.println("WARNING: ContextMap: nowhere to add index.");
+            System.out.printf("Rank = %d, length = %d\n",rank,value.length);
+            return -1;
         }
-        for(; index < map.length; index++) {
-            if(map[index] == null) {
-                map[index] = new ContextEntry(key);
-                count++;
-                return index;
-            }
-            if(map[index].word == key) {
-                return index;
-            }
-        }
-        for(index = 0; index < h && index < map.length; index++) {
-            if(map[index] == null) {
-                map[index] = new ContextEntry(key);
-                count++;
-                return index;
-            }
-            if(map[index].word == key) {
-                return index;
-            }
-        }
-
-        System.out.println("WARNING: NgramHashMap: nowhere to add index.");
-        return 0;
+        return rank;
     }
 
     private int findIndex(long key) {
-        int h = hash(key);
-        int index = h;
-        for(; index < map.length; index++) {
-            if(map[index] == null || map[index].value == 0) {
-                return -1;
-            }
-            if(map[index].word == key) {
-                return index;
-            }
+        int rank = rankTable.getKeyRank(key);
+        if(rank < 0 || rank >= value.length) {
+            return -1;
         }
-        for(index = 0; index < h && index < map.length; index++) {
-            if(map[index] == null || map[index].value == 0) {
-                return -1;
-            }
-            if(map[index].word == key) {
-                return index;
-            }
-        }
-        return -1;
+        return rank;
     }
 
-    private ContextEntry accessMapIndex(int index) {
-        if(index >= map.length || index < 0) {
-            // System.out.println("WARNING: ContextMap: Index out of Boundary!");
-            return null;
-        }
-        if(map[index] == null) {
-            // System.out.println("WARNING: ContextMap: access null entry!");
-            return null;
-        }
-        return map[index];
-    }
-    
     public boolean containsKey(long key) {
         int index = findIndex(key);
-        if(index < 0 || index >= map.length) {
+        if(index < 0) {
             return false;
         }
         return true;
@@ -96,42 +50,54 @@ public class ContextMap {
 
     public int addKeyValue(long key) {
         int index = addIndex(key);
-        map[index].value++;
+        if(index < 0) {
+            return -1;
+        }
+        value[index]++;
         return index;
     }
 
     public int addKeyPrefixCount(long key) {
         int index = addIndex(key);
-        map[index].prefixCount++;
+        if(index < 0) {
+            return -1;
+        }
+        prefixCount[index]++;
         return index;
     }
 
     public int addKeySuffixCount(long key) {
         int index = addIndex(key);
-        map[index].suffixCount++;
+        if(index < 0) {
+            return -1;
+        }
+        suffixCount[index]++;
         return index;
     }
 
     public int addIndexValue(int index) {
-        map[index].value++;
+        if(index < 0 || index >= value.length) {
+            return -1;
+        }
+        value[index]++;
         return index;
     }
 
     public int addIndexPrefixCount(int index) {
-        map[index].prefixCount++;
+        if(index < 0 || index >= value.length) {
+            return -1;
+        }
+        prefixCount[index]++;
         return index;
     }
 
     public int addIndexSuffixCount(int index) {
-        map[index].suffixCount++;
+        if(index < 0 || index >= value.length) {
+            return -1;
+        }
+        suffixCount[index]++;
         return index;
     }
-
-    // public int put(long key, int value) {
-    //     int index = addIndex(key);
-    //     map[index].value = value;
-    //     return index;
-    // }
 
     public int indexOf(long key) {
         return findIndex(key);
@@ -139,60 +105,54 @@ public class ContextMap {
 
     public int getKeyValue(long key) {
         int index = findIndex(key);
-        ContextEntry ce = accessMapIndex(index);
-        if(ce == null) {
+        if(index < 0) {
             return 0;
         }
-        return ce.value;
+        return value[index];
     }
 
     public int getIndexValue(int index) {
-        ContextEntry ce = accessMapIndex(index);
-        if(ce == null) {
+        if(index < 0 || index >= value.length) {
             return 0;
         }
-        return ce.value;
+        return value[index];
     }
 
     public int getKeyPrefixCount(long key) {
         int index = findIndex(key);
-        ContextEntry ce = accessMapIndex(index);
-        if(ce == null) {
+        if(index < 0) {
             return 0;
         }
-        return ce.prefixCount;
+        return prefixCount[index];
     }
 
     public int getIndexPrefixCount(int index) {
-        ContextEntry ce = accessMapIndex(index);
-        if(ce == null) {
+        if(index < 0 || index >= value.length) {
             return 0;
         }
-        return ce.prefixCount;
+        return prefixCount[index];
     }
 
     public int getKeySuffixCount(long key) {
         int index = findIndex(key);
-        ContextEntry ce = accessMapIndex(index);
-        if(ce == null) {
+        if(index < 0) {
             return 0;
         }
-        return ce.suffixCount;
+        return suffixCount[index];
     }
 
     public int getIndexSuffixCount(int index) {
-        ContextEntry ce = accessMapIndex(index);
-        if(ce == null) {
+        if(index < 0 || index >= value.length) {
             return 0;
         }
-        return ce.suffixCount;
+        return suffixCount[index];
     }
 
     public void print(int size) {
         int count = 0;
-        for(int i = 0; i < map.length; i++) {
-            if(map[i] != null) {
-                System.out.printf("%d\t%d\t%d\t%d\n",i,map[i].value,map[i].prefixCount,map[i].suffixCount);
+        for(int i = 0; i < value.length; i++) {
+            if(value[i] != 0) {
+                System.out.printf("%d\t%d\t%d\t%d\n",i,value[i],prefixCount[i],suffixCount[i]);
                 count++;
                 if(count > size) {
                     break;
@@ -203,9 +163,9 @@ public class ContextMap {
 
     public void print_last(int size) {
         int count = 0;
-        for(int i = map.length - 1; i >= 0; i--) {
-            if(map[i] != null) {
-                System.out.printf("%d\t%d\t%d\t%d\n",i,map[i].value,map[i].prefixCount,map[i].suffixCount);
+        for(int i = value.length - 1; i >= 0; i--) {
+            if(value[i] != 0) {
+                System.out.printf("%d\t%d\t%d\t%d\n",i,value[i],prefixCount[i],suffixCount[i]);
                 count++;
                 if(count > size) {
                     break;
@@ -216,11 +176,8 @@ public class ContextMap {
 
     public void print_word(long key) {
         int i = findIndex(key);
-        ContextEntry ce = accessMapIndex(i);
-        if(ce == null) {
-            System.out.println("Not exist");
+        if(i < 0)
             return;
-        }
-        System.out.printf("%d\t%d\t%d\t%d\n",i,map[i].value,map[i].prefixCount,map[i].suffixCount);
+        System.out.printf("%d\t%d\t%d\t%d\n",i,value[i],prefixCount[i],suffixCount[i]);
     }
 }

@@ -19,14 +19,13 @@ public class NgramModel {
         maxSentence = limit;
         wordCount = 0;
         twoCombinationCount = 0;
-        // CalculateCombination(trainingData);
         unigram_map = new UnigramMap();
-        BuildUnigramModel(trainingData);
         bigram_map = new ContextMap(2);
-        BuildBigramModel(trainingData);
         trigram_map = new NgramHashMap(3);
+
         BuildTrigramModel(trainingData);
-    
+        BuildBigramModel(trainingData);
+        BuildUnigramModel(trainingData);
     }
 
     private void CalculateCombination(Iterable<List<String>> trainingData) {
@@ -66,8 +65,12 @@ public class NgramModel {
         NgramHashSet SuffixSet = new NgramHashSet(2);
         NgramHashSet MiddleSet = new NgramHashSet(3);
         // NgramHashSet PrefixSet = new NgramHashSet(2);
+        int sent_count = 0;
         for (List<String> sentence : trainingData) {
             sent++;
+            if(sent > sent_count) {
+                sent_count = sent;
+            }
             if(maxSentence > 0 && sent > maxSentence) {
                 break;
             }
@@ -111,7 +114,7 @@ public class NgramModel {
                 N1 = index;
             }
         }
-        System.out.printf("Build Unigram Model Done: wordCount = %d\n", wordCount);
+        System.out.printf("Build Unigram Model Done: wordCount = %d, sentCount = %d\n", wordCount, sent_count);
         unigram_map.print(10);
         unigram_map.print_last(10);
     }
