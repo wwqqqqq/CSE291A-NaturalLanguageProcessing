@@ -20,45 +20,9 @@ public class LmFactory implements LanguageModelFactory
    */
   public NgramLanguageModel newLanguageModel(Iterable<List<String>> trainingData) {
 
-    final String STOP = NgramLanguageModel.STOP;
-    int[] unigramCounter = new int[5000000];    
-    
 	System.out.println("Building Trigram Model . . .");
-	
-	System.out.println("Building Fertility Map...");
-	FertilityCount fc = new FertilityCount(trainingData);
-	System.out.println("Done building Fertility Map.");
-    
-    System.out.println("Building wordCounter...");
-	int sent = 0;
-	// int max_count = 0;
-	for (List<String> sentence : trainingData) {
-		sent++;
-		if (sent % 1000000 == 0) System.out.println("On sentence " + sent);
-		List<String> stoppedSentence = new ArrayList<String>(sentence);
-		stoppedSentence.add(0, NgramLanguageModel.START);
-		stoppedSentence.add(STOP);
-		for (String word : stoppedSentence) {
-			int index = EnglishWordIndexer.getIndexer().addAndGetIndex(word);
-			if (index >= unigramCounter.length) unigramCounter = CollectionUtils.copyOf(unigramCounter, unigramCounter.length * 2);
-			unigramCounter[index]++;
-			// if(unigramCounter[index] > max_count) {
-			// 	max_count = unigramCounter[index];
-			// }
-		}
-	}
-	final int[] wordCounter = CollectionUtils.copyOf(unigramCounter, EnglishWordIndexer.getIndexer().size());
-	System.out.println("Done building wordCounter.");
-	// System.out.print(max_count); // 19880264 => 25 bits
-	// System.out.print(EnglishWordIndexer.getIndexer().size()); // 495172 => 19 bits
-	
-	System.out.println("Building Bigram Table...");
-	NgramModel bigram = new NgramModel(2, trainingData);
-	System.out.println("Done building Bigram Table.");
-	
-	System.out.println("Building Trigram Table...");
-	NgramModel trigram = new NgramModel(3, trainingData);
-	System.out.println("Done building Trigram Table.");
+
+	NgramModel model = new NgramModel(trainingData, -1);
 
 	System.out.println("Done building Trigram Model.");
 	
@@ -81,10 +45,11 @@ public class LmFactory implements LanguageModelFactory
 			if(to - from == 3) {
 				// return count
 				long prefix = NgramUtils.getConcatenateIndex(prev[from], prev[from+1]);
-				return trigram.getPrefixWordCount(prefix, prev[from+2]);
+				long word = NgramUtils.getConcatenateIndex(prefix, prev[from+2]);
+				return model.getTrigramCount(word);
 			}
 			else if(to - from == 2 || to - from == 1) {
-				return fc.getFertilityCountforSuffix(prev, from, to-1, prev[to-1]);
+				return model.getSuffixFertilityCount(prev, from, to);
 			}
 			return 0;
 		}
@@ -101,13 +66,14 @@ public class LmFactory implements LanguageModelFactory
 			if(to - from == 2) {
 				// return count
 				// sum_v count(prev, v)
-				return bigram.getPrefixWordCount((long)prev[from], prev[from+1]);
+				long word = NgramUtils.getConcatenateIndex(prev[from], prev[from+1]);
+				return model.getBigramCount(word);
 			}
 			else if(to - from == 1) {
-				return fc.getFertilityCountforMiddle(prev, from, to);
+				return model.getMiddleFertilityCount(prev, from, to);
 			}
 			else if(to - from == 0) {
-				return fc.getBigramCount();
+				return model.getCombinationCount();
 			}
 			return 0;
 		}
@@ -118,17 +84,17 @@ public class LmFactory implements LanguageModelFactory
 			}
 			if(to - from == 2) {
 				// return count
-				return NgramUtils.d * fc.getFertilityCountforPrefix(prev, from, to);
+				return NgramUtils.d * model.getPrefixFertilityCount(prev, from, to);
 			}
 			else if(to - from == 1) {
-				return NgramUtils.d * fc.getFertilityCountforPrefix(prev, from, to);
+				return NgramUtils.d * model.getPrefixFertilityCount(prev, from, to);
 			}
 			return 0;
 		}
 
 		private double getNgramProbability(int[] ngram, int from, int to) {
-			for(int i = from; i < to; i++) {
-				if(ngram[i] >= wordCounter.length || ngram[i] < 0) {
+			for(int i = to - 1; i >= from; i--) {
+				if(ngram[i] >= model.getWordCount() || ngram[i] < 0) {
 					return getNgramProbability(ngram, i+1, to);
 				}
 			}
@@ -136,26 +102,68 @@ public class LmFactory implements LanguageModelFactory
 				return 0;
 			}
 
-			double count = getContextCount(ngram, from, to-1);
-
-			if(count == 0.0) {
-				return getNgramProbability(ngram, from + 1, to);
+			if(to - from == 3) {
+				// P_3
+				long prev2 = NgramUtils.getConcatenateIndex(ngram[from], ngram[from+1]);
+				int prev2_index = model.getWordIndex(2, prev2);
+				if(prev2_index < 0) {
+					return getNgramProbability(ngram, from + 1, to);
+				}
+				double count = model.getBigramIndexCount(prev2_index);
+				if(count == 0.0) {
+					return getNgramProbability(ngram, from + 1, to);
+				}
+				double alpha = NgramUtils.d * model.getPrefixFertilityCount(2, prev2_index) / count;
+				long key = NgramUtils.getConcatenateIndex(prev2, ngram[from+2]);
+				double fertility = model.getTrigramCount(key) - NgramUtils.d;
+				if(fertility < 0) {
+					fertility = 0;
+				}
+				return fertility / count + alpha * getNgramProbability(ngram, from+1, to);
 			}
-
-			if(to - from == 1) {
-				// unigram
-				return getFertilityCount(ngram, from, to) / count;
+			else if(to - from == 2) {
+				int prev_index = ngram[from];
+				int count = model.getMiddleFertilityCount(prev_index);
+				if(count == 0.0) {
+					return getNgramProbability(ngram, from + 1, to);
+				}
+				double alpha = NgramUtils.d * model.getPrefixFertilityCount(1, prev_index) / count;
+				double fertility = model.getSuffixFertilityCount(ngram, from, to) - NgramUtils.d;
+				if(fertility < 0) {
+					fertility = 0;
+				}
+				return fertility / count + alpha * getNgramProbability(ngram, from+1, to);
 			}
-
-			double fertility = getFertilityCount(ngram, from, to) - NgramUtils.d;
-			if(fertility < 0.0) {
-				fertility = 0.0;
+			else if(to - from == 1) {
+				int count = model.getCombinationCount();
+				if(count == 0.0) {
+					return 0;
+				}
+				double fertility = model.getSuffixFertilityCount(ngram, from, to);
+				return fertility / count;
 			}
+			return 0;
 
-			// calculate alpha
-			double alpha = getDiscount(ngram, from, to-1) / count;
+			// double count = getContextCount(ngram, from, to-1);
 
-			return (fertility / count) + (alpha * getNgramProbability(ngram, from + 1, to));
+			// if(count == 0.0) {
+			// 	return getNgramProbability(ngram, from + 1, to);
+			// }
+
+			// if(to - from == 1) {
+			// 	// unigram
+			// 	return getFertilityCount(ngram, from, to) / count;
+			// }
+
+			// double fertility = getFertilityCount(ngram, from, to) - NgramUtils.d;
+			// if(fertility < 0.0) {
+			// 	fertility = 0.0;
+			// }
+
+			// // calculate alpha
+			// double alpha = getDiscount(ngram, from, to-1) / count;
+
+			// return (fertility / count) + (alpha * getNgramProbability(ngram, from + 1, to));
 		}
 		
 	
@@ -166,7 +174,7 @@ public class LmFactory implements LanguageModelFactory
 			}
 	
 			double prob = getNgramProbability(ngram, from, to);
-			if(prob == 0) {
+			if(prob <= 0) {
 				return -100;
 			}
 			return Math.log(prob);
@@ -178,15 +186,17 @@ public class LmFactory implements LanguageModelFactory
 			try {
 				if(ngram.length == 1) {
 					int word = ngram[0];
-					if (word < 0 || word >= wordCounter.length) return 0;
-					return wordCounter[word];
+					if (word < 0 || word >= model.getWordCount()) return 0;
+					return model.getUnigramCount(word);
 				}
 				else if(ngram.length == 2) {
-					return bigram.getPrefixWordCount((long) ngram[0], ngram[1]);
+					long word = NgramUtils.getConcatenateIndex(ngram[0], ngram[1]);
+					return model.getBigramCount(word);
 				}
 				else if(ngram.length == 3) {
 					long prefix = NgramUtils.getConcatenateIndex(ngram[0], ngram[1]);
-					return trigram.getPrefixWordCount(prefix, ngram[2]);
+					long word = NgramUtils.getConcatenateIndex(prefix, ngram[2]);
+					return model.getTrigramCount(word);
 				}
 			}
 			catch (Exception e) {

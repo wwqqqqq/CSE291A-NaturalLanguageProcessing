@@ -20,10 +20,13 @@ public class FertilityCount {
     public FertilityCount(Iterable<List<String>> trainingData) {
         BuildSuffixCounter(trainingData);
         SuffixCounter.print(10);
+        SuffixCounter.print_last(10);
         BuildMiddleCounter(trainingData);
         MiddleCounter.print(10);
+        MiddleCounter.print_last(10);
         BuildPrefixCounter(trainingData);
         PrefixCounter.print(10);
+        PrefixCounter.print_last(10);
     }
 
     private void BuildSuffixCounter(Iterable<List<String>> trainingData) {
@@ -145,15 +148,11 @@ public class FertilityCount {
         // c'(x) = |{u: c(u,x)>0}|
         if(to - from == 1) {
             long suffix = NgramUtils.getConcatenateIndex(prev[from], word);
-            if(SuffixCounter.containsKey(suffix)) {
-                return SuffixCounter.get(suffix);
-            }
+            return SuffixCounter.get(suffix);
         }
         else if(to - from == 0) {
             long suffix = word;
-            if(SuffixCounter.containsKey(suffix)) {
-                return SuffixCounter.get(suffix);
-            }
+            return SuffixCounter.get(suffix);
         }
         return 0;
     }
@@ -161,15 +160,11 @@ public class FertilityCount {
     public int getFertilityCountforMiddle(int[] prev, int from, int to) {
         if(to - from == 2) {
             long middle = NgramUtils.getConcatenateIndex(prev[from], prev[from+1]);
-            if(MiddleCounter.containsKey(middle)) {
-                return MiddleCounter.get(middle);
-            }
+            return MiddleCounter.get(middle);
         }
         else if(to - from == 1) {
             long middle = prev[from];
-            if(MiddleCounter.containsKey(middle)) {
-                return MiddleCounter.get(middle);
-            }
+            return MiddleCounter.get(middle);
         }
         return 0;
     }
@@ -177,15 +172,11 @@ public class FertilityCount {
     public int getFertilityCountforPrefix(int[] prev, int from, int to) {
         if(to - from == 2) {
             long prefix = NgramUtils.getConcatenateIndex(prev[from], prev[from+1]);
-            if(PrefixCounter.containsKey(prefix)) {
-                return PrefixCounter.get(prefix);
-            }
+            return PrefixCounter.get(prefix);
         }
         else if(to - from == 1) {
             long prefix = prev[from];
-            if(PrefixCounter.containsKey(prefix)) {
-                return PrefixCounter.get(prefix);
-            }
+            return PrefixCounter.get(prefix);
         }
         return 0;
     }

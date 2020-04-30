@@ -18,4 +18,30 @@ public class NgramUtils {
     }
     
     static final public double d = 0.8;
+
+    public static int estimateSize(int n) {
+        int estimate_max_size = 0;
+        if(n == 1) {
+			estimate_max_size = 500001; // 495172
+		}
+		else if(n == 2) {
+			estimate_max_size = 16000001; // 8374230
+		}
+		else if(n == 3) {
+			estimate_max_size = 50000001; // 25760367
+		}
+		else {
+			System.out.println("WARNING: Order > 3 in NgramHashSet.");
+        }
+        return estimate_max_size;
+    }
+
+    public static int hash(long key) {
+        // TODO: design a hash function
+        int h = (int)((key ^ (key >>> 32)) * 3875239);
+		if (h < 0) {
+			h = - (h + 1);
+        }
+        return h;
+    }
 }

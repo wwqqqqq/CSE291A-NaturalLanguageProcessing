@@ -6,29 +6,14 @@ public class NgramHashSet {
 	private int count;
 
 	public NgramHashSet(int n) {
-		if(n == 1) {
-			estimate_max_size = 1000000; // 495172
-		}
-		else if(n == 2) {
-			estimate_max_size = 10000000; // 8374230
-		}
-		else if(n == 3) {
-			estimate_max_size = 50000000; // 25760367
-		}
-		else {
-			System.out.println("WARNING: Order > 3 in NgramHashSet.");
-		}
+		estimate_max_size = NgramUtils.estimateSize(n);
         map = new Long[estimate_max_size];
 		count = 0;
 	}
 
 	private int hash(long key) {
-		// TODO: design a hash function
-		int h = (int)((key ^ (key >>> 32)) * 3875239);
-		if (h < 0) {
-			h = - (h + 1);
-		}
-		return (h % estimate_max_size);
+		int h = NgramUtils.hash(key);
+		return (h % (estimate_max_size));
 	}
 
 	private int addIndex(long key) {
